@@ -45,6 +45,24 @@ class TestAlissa(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.alissa.move_up()
 
+    def test_weaponise_disarm(self):
+        weapon = TeleportationPotion()
+        self.alissa.weaponise(weapon)
+        self.assertEqual(self.alissa.weapon, weapon)
+        self.alissa.disarm()
+        self.assertEqual(self.alissa.weapon, None)
+
+    def test_attack(self):
+        self.assertEqual(self.alissa.attack(), BaseWeapon().damage)
+        weapon = TeleportationPotion()
+        self.alissa.weaponise(weapon)
+        self.assertEqual(self.alissa.attack(), weapon.damage)
+
+    def test_is_dead(self):
+        self.alissa.get_damage(200)
+        self.assertTrue(self.alissa.is_dead())
+
+
         
 
 if __name__ == '__main__':

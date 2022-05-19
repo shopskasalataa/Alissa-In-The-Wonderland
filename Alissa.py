@@ -4,8 +4,10 @@ from utils import verify_positive
 class Alissa:
     @verify_positive
     def __init__(self, position):
+        self.name = 'Alissa'
         self.health = 100
         self.base_weapon = BaseWeapon()
+        self.weapon = None
         self.inventory = []
         self.position = position
 
@@ -41,6 +43,27 @@ class Alissa:
     def move_right(self):
         x, y = self.position
         self.move((x, y + 1))
+
+    def show_inventory(self):
+        for (i, x) in enumerate(self.inventory):
+            print(f'{i}. {x}')
+
+    def weaponise(self, weapon):
+        self.weapon = weapon
+
+    def disarm(self):
+        self.weapon = None
+
+    def attack(self):
+        weapon = self.weapon if self.weapon else self.base_weapon
+        return weapon.damage
+
+    def is_dead(self):
+        return self.health <= 0
+
+    @verify_positive
+    def get_damage(self, damage):
+        self.health -= damage
 
 
 if __name__ == '__main__':

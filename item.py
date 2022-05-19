@@ -6,7 +6,7 @@ class Item:
         self.description = description
 
     def __str__(self):
-        return f'Item: {self.name}|Damage: {self.damage}|Action: {self.action}'
+        return f'Item: {self.name} | Damage: {self.damage} | Action: {self.action}'
 
     def __repr__(self):
         return self.__str__()

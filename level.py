@@ -1,5 +1,6 @@
 from Alissa import Alissa
 from item import *
+from monster import *
 from random import randrange
 
 
@@ -9,6 +10,11 @@ ITEM_CLASSES = [TeleportationPotion,
                 MagicalHandFan,
                 InvisibleHat,
                 Rose]
+
+MONSTER_CLASSES = [CheshireCat,
+                   QueenOfHearts,
+                   WhiteRabbit,
+                   MadHatter]
 
 
 def read_matrix(filename):
@@ -41,27 +47,28 @@ class LevelMap:
     out_portal = 'o'
     enemy_symbol = 'E'
     hero_symbol = 'A'
-    item_symbol = 'x'
+    weapon_symbol = 'x'
 
     direction_up = 'u'
     direction_down = 'd'
     direction_left = 'l'
     direction_right = 'r'
 
-    def __init__(self, filename, range_of_items, range_of_monsters):
+    def __init__(self, filename, range_of_weapons, range_of_monsters):
         from random import randint
-        number_of_items = randint(range_of_items[0], range_of_items[1])
+        number_of_weapons = randint(range_of_weapons[0], range_of_weapons[1])
         number_of_monsters = randint(range_of_monsters[0], range_of_monsters[1])
 
-        #?
-        items = generate_random_array(number_of_items, ITEM_CLASSES)
+        weapons = generate_random_array(number_of_weapons, ITEM_CLASSES)
+        monsters = generate_random_array(number_of_monsters, MONSTER_CLASSES)
 
         self.level_map = read_matrix(filename)
         self.rows = len(self.level_map)
         self.columns = len(self.level_map[0])
 
         self.set_hero()
-        self.set_items(items)
+        self.set_weapons(weapons)
+        self.set_monsters(monsters)
 
         self.is_finished = False
 
@@ -73,11 +80,18 @@ class LevelMap:
         self.hero = Alissa(hero_position)
         self.set_hero_position(hero_position)
 
-    def set_items(self, items):
-        self.items = items
-        for _ in self.items:
+    def set_weapons(self, weapons):
+        self.weapons = weapons
+        self.spawn_items(self.weapons, LevelMap.weapon_symbol)
+
+    def set_monsters(self, monsters):
+        self.monsters = monsters
+        self.spawn_items(self.monsters, LevelMap.enemy_symbol)
+
+    def spawn_items(self, source, symbol):
+        for _ in source:
             position = self.find_spawn()
-            self.set_position_symbol(position, LevelMap.item_symbol)
+            self.set_position_symbol(position, symbol)
 
     def check_position_value(self, position, value):
         n, m = position
@@ -89,8 +103,11 @@ class LevelMap:
     def is_blocked(self, position):
         return self.check_position_value(position, LevelMap.blocked_square)
 
-    def is_item(self, position):
-        return self.check_position_value(position, LevelMap.item_symbol)
+    def is_weapon(self, position):
+        return self.check_position_value(position, LevelMap.weapon_symbol)
+
+    def is_monster(self, position):
+        return self.check_position_value(position, LevelMap.enemy_symbol)
 
     def check_final(self, position):
         self.is_finished = self.check_position_value(position, LevelMap.out_portal)
@@ -105,19 +122,28 @@ class LevelMap:
         self.level_map[position[0]][position[1]] = symbol
 
     def set_empty(self, position):
-        self.set_positi     on_symbol(position, LevelMap.empty_square)
+        self.set_position_symbol(position, LevelMap.empty_square)
 
     def set_hero_position(self, hero_position):
         self.set_position_symbol(hero_position, LevelMap.hero_symbol)
 
-    def remove_item(self, index):
-        self.items = self.items[:index] + self.items[index + 1:]
+    def remove_weapon(self, index):
+        self.weapons = self.weapons[:index] + self.weapons[index + 1:]
 
-    def get_ramdom_item(self):
-        index = randrange(0, len(self.items))
-        item = self.items[index]
-        self.remove_item(index)
-        return item
+    def remove_monster(self, index):
+        self.monsters = self.monsters[:index] + self.monsters[index + 1:]
+
+    def get_random_weapon(self):
+        index = randrange(0, len(self.weapons))
+        weapon = self.weapons[index]
+        self.remove_weapon(index)
+        return weapon
+
+    def get_random_monster(self):
+        index = randrange(0, len(self.monsters))
+        monster = self.monsters[index]
+        self.remove_monster(index)
+        return monster
 
     # Функциите надолу не са чисти и поддържат интерфейса на играта
     def move_hero(self, direction):
@@ -138,15 +164,30 @@ class LevelMap:
             print('Invalid move - blocked square')
             self.hero.move(old_position)
         else:
-            if self.is_item(new_position):
-                weapon = self.get_ramdom_item()
+            if self.is_weapon(new_position):
+                weapon = self.get_random_weapon()
                 print('You found a weapon\n', weapon)
                 self.hero.add_weapon(weapon)
+
+            if self.is_monster(new_position):
+                self.fight(self.get_random_monster())
 
             self.check_final(new_position)
 
             self.set_empty(old_position)
             self.set_hero_position(new_position)
+
+    def fight(self, monster):
+        while not self.hero.is_dead() and not monster.is_dead():
+            damage = self.hero.attack()
+            monster.get_damage(damage)
+            damage = monster.attack()
+            self.hero.get_damage(damage)
+
+        if not self.hero.is_dead():
+            self.hero.disarm()
+            print(f'{self.hero.name} wins!')
+        # else
 
     def play(self):
         while not self.is_finished:
@@ -158,26 +199,26 @@ class LevelMap:
 # Wrapping класове за различните труднусти на нивата
 class EasyLevel(LevelMap):
     def __init__(self, filename):
-        range_of_items = (0, 3)
+        range_of_weapons = (0, 3)
         range_of_monsters = (0, 3)
-        LevelMap.__init__(self, filename, range_of_items, range_of_monsters)
+        LevelMap.__init__(self, filename, range_of_weapons, range_of_monsters)
 
 
 class MediumLevel(LevelMap):
     def __init__(self, filename):
-        range_of_items = (3, 5)
+        range_of_weapons = (3, 5)
         range_of_monsters = (4, 7)
-        LevelMap.__init__(self, filename, range_of_items, range_of_monsters)
+        LevelMap.__init__(self, filename, range_of_weapons, range_of_monsters)
 
 
 class HardLevel(LevelMap):
     def __init__(self, filename):
-        range_of_items = (5, 9)
+        range_of_weapons = (5, 9)
         range_of_monsters = (7, 11)
-        LevelMap.__init__(self, filename, range_of_items, range_of_monsters)
+        LevelMap.__init__(self, filename, range_of_weapons, range_of_monsters)
 
 
 if __name__ == '__main__':
-    filename = 'level_maps/level1.txt'
+    filename = 'level1.txt'
     elevel = MediumLevel(filename)
     elevel.play()
